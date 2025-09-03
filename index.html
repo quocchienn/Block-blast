@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Block Blast + Nổ Hũ – Bắt đầu ⇄ Dừng cược</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <!-- BOARD -->
+  <div class="card">
+    <div class="header">
+      <h3 style="margin:0">Block Blast + Nổ Hũ</h3>
+      <div class="pill">Bàn 10×10 – Kéo thả khối</div>
+    </div>
+    <div id="board" class="board"></div>
+    <div class="divider"></div>
+    <div id="tray" class="tray"></div>
+    <div class="legend" style="margin-top:10px">
+      Chọn <b>Tiền cược</b> (tối thiểu 10.000₫, bước 5.000₫) rồi bấm <b>Bắt đầu</b> (nút sẽ đổi thành <b>Dừng cược</b>).<br>
+      <b>Nổ hũ</b> chỉ xảy ra khi <b>đặt khối JP</b> (viền vàng lấp lánh) và <b>xóa được line</b>; nổ xong <b>hũ về 0</b>. Xóa line bằng khối thường sẽ <b>tăng hũ</b> và <b>tăng nhẹ tỉ lệ JP</b>.
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="card">
+    <div class="stats">
+      <div class="stat"><small>Số dư</small><b id="bal">0 ₫</b></div>
+      <div class="stat"><small>Điểm</small><b id="score">0</b></div>
+      <div class="stat"><small>Tiền cược / phí vào bàn</small><b id="betLabel">0 ₫</b></div>
+      <div class="stat"><small>Quỹ Nổ Hũ</small><b id="jackpot">0 ₫</b></div>
+    </div>
+
+    <div class="controls">
+      <label>Tiền cược:</label>
+      <button class="btn ghost sm" id="dec5">− 5k</button>
+      <input id="bet" class="num" inputmode="numeric" placeholder="10.000" value="10.000">
+      <button class="btn ghost sm" id="inc5">+ 5k</button>
+      <span class="tag">(min 10.000₫ · bước 5.000₫)</span>
+    </div>
+
+    <div class="controls">
+      <label>Số dư ban đầu:</label>
+      <input id="startBal" class="num" inputmode="numeric" placeholder="100.000" value="100.000">
+    </div>
+
+    <div class="controls">
+      <button class="btn unified" id="startBtn">Bắt đầu</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="jackpotPop" class="jackpot-pop"><div class="pop" id="jpText">💥 NỔ HŨ! 💥</div></div>
+
+<script defer src="script.js"></script>
+</body>
+</html>
