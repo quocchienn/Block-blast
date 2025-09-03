@@ -1,9 +1,9 @@
 (function(){
   /* ====== CONFIG ====== */
   var ROWS=10, COLS=10;
-  var JACKPOT_KEY='bb_jackpot_pot_v8';
+  var JACKPOT_KEY='bb_jackpot_pot_v9';
   var JACKPOT_SEED=0;
-  var JACKPOT_TAKE_START=0.05;   // 5% phí vào bàn
+  var JACKPOT_TAKE_START=0.05;
   var BIG_REWARD_RATE=0.20;
   var SMALL_RANGE=[1,3];
   var BIG_RANGE=[5,10];
@@ -25,7 +25,6 @@
   var playing=false;
   var jpBonusProb=0;
 
-  // Wake Lock để giữ màn hình không tắt (nếu hỗ trợ & HTTPS)
   var wakeLock=null;
 
   /* ====== DOM ====== */
@@ -56,7 +55,7 @@
   function toast(s){ $toast.textContent=s; $toast.classList.remove('show'); var _=$toast.offsetWidth; $toast.classList.add('show'); }
   function updateHud(){ $bal.textContent=fmtVND(balance); $score.textContent=String(score); $betLabel.textContent=fmtVND(bet); $jackpot.textContent=fmtVND(jackpotPot); }
 
-  // format số có dấu chấm
+  /* số có dấu chấm */
   function onlyDigits(s){ return s.replace(/[^\d]/g,''); }
   function formatDots(s){ if(!s) return ''; var x=s.replace(/^0+/,''); if(x==='') x='0'; var out='',i=0,n=x.length; for(i=0;i<n;i++){ var pos=n-i; out+=x.charAt(i); if(pos>1 && pos%3===1) out+='.'; } return out; }
   function readVNNumber(el,fb){ var raw=onlyDigits(el.value||''); if(!raw) return fb||0; return parseInt(raw,10); }
@@ -81,31 +80,30 @@
     else{ $startBtn.classList.remove('running'); $startBtn.textContent='Bắt đầu'; }
   }
 
-  /* ====== Layout: tính kích thước ô cho mobile dễ chạm ====== */
+  /* ====== Responsive cell size (co giãn & vẫn cuộn được) ====== */
   function resizeBoard(){
-    // Lấy chiều rộng khả dụng (card trái chiếm ~100% khi mobile)
-    var appW = Math.min(window.innerWidth*0.96, 520); // trần 520px
-    var cell = Math.max(30, Math.min(44, Math.floor((appW - 12*parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap')||6)) / 10)));
+    // Ưu tiên vừa chiều ngang màn hình (khi 1 cột), có trần để không quá to.
+    var ww = window.innerWidth;
+    var gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap')) || 6;
+    // chừa pad 16px hai bên + khung card
+    var maxW = Math.min(ww - 32, 560);
+    var cellW = Math.floor((maxW - (gap*9) - (gap*2)) / 10);
+    // ràng buộc để dễ chạm nhưng không vỡ layout
+    var cell = Math.max(26, Math.min(54, cellW));
     document.documentElement.style.setProperty('--cell', cell+'px');
   }
   window.addEventListener('resize', resizeBoard);
   resizeBoard();
 
-  // Chặn menu chuột phải / long-press
-  window.addEventListener('contextmenu', function(e){ e.preventDefault(); });
-
   /* ====== Wake Lock ====== */
   function tryWakeLock(){
     if('wakeLock' in navigator){
-      navigator.wakeLock.request('screen').then(function(lock){
-        wakeLock=lock;
-        wakeLock.addEventListener('release', function(){ /* released */ });
-      }).catch(function(){ /* ignore */ });
+      navigator.wakeLock.request('screen').then(function(lock){ wakeLock=lock; })
+      .catch(function(){});
     }
   }
   function releaseWakeLock(){ if(wakeLock){ wakeLock.release().catch(function(){}); wakeLock=null; } }
   document.addEventListener('visibilitychange', function(){
-    // iOS/Android có thể release khi tab ẩn, thử xin lại khi quay lại
     if(document.visibilityState==='visible' && playing && wakeLock==null){ tryWakeLock(); }
   });
 
@@ -233,7 +231,7 @@
     } return false;
   }
 
-  /* ====== Drag & Ghost (tối ưu mobile) ====== */
+  /* ====== Drag & Ghost (mượt, không cản cuộn ngoài board) ====== */
   function attachDrag(el,piece){
     var dragEl=null, ghostCells=[],grab={x:0,y:0};
     var moveQueued=false, lastMove=null;
@@ -257,18 +255,11 @@
       dragging.candidate={row:row,col:col,ok:ok};
       dragEl.style.left=(e.clientX||0)+'px'; dragEl.style.top=(e.clientY||0)+'px';
     }
-
-    function queueMove(e){
-      lastMove=e;
-      if(!moveQueued){
-        moveQueued=true;
-        requestAnimationFrame(function(){ processMove(lastMove); });
-      }
-    }
+    function queueMove(e){ lastMove=e; if(!moveQueued){ moveQueued=true; requestAnimationFrame(function(){ processMove(lastMove); }); } }
 
     function onDown(e){
       if(!playing){ toast('Bấm Bắt đầu để chơi!'); return; }
-      e.preventDefault();  // chặn cuộn/zoom khi chạm
+      e.preventDefault(); // chặn pan trong lúc kéo
       var rect=el.getBoundingClientRect();
       var px=e.clientX-rect.left, py=e.clientY-rect.top;
       var inner=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell'))-6;
@@ -315,7 +306,7 @@
     playing=true; setBetControlsEnabled(false); setStartBtnRunning(true); updateHud();
     toast('Đã trừ phí vào bàn: '+fmtVND(bet));
 
-    tryWakeLock(); // giữ màn hình sáng khi chơi
+    tryWakeLock();
   }
 
   function stopGame(){
@@ -336,7 +327,7 @@
     releaseWakeLock();
   }
 
-  // Event
+  /* ====== Events ====== */
   $startBtn.addEventListener('click', function(){ if(playing) stopGame(); else startGame(); });
   $dec5.addEventListener('click', function(){ if(playing) return; var n=snapBet(readVNNumber($bet, MIN_BET)-STEP); setVNNumber($bet,n); bet=n; updateHud(); });
   $inc5.addEventListener('click', function(){ if(playing) return; var n=snapBet(readVNNumber($bet, MIN_BET)+STEP); setVNNumber($bet,n); bet=n; updateHud(); });
@@ -348,4 +339,9 @@
     refillTray(); drawTray();
   })();
 
+  /* ====== Helpers ====== */
+  function showJackpot(amount){
+    $jpText.textContent='💥 NỔ HŨ! Bạn nhận '+fmtVND(amount)+' 💥';
+    $jpPop.style.display='grid'; setTimeout(function(){ $jpPop.style.display='none'; }, 1500);
+  }
 })();
